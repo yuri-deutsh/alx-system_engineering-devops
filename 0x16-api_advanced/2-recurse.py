@@ -1,31 +1,45 @@
 #!/usr/bin/python3
-"""Function to query a list of all hot posts on a given Reddit subreddit."""
-import requests
+
+"""
+importing requests module
+"""
+
+from requests import get
 
 
-def recurse(subreddit, hot_list=[], after="", count=0):
-    """Returns a list of titles of all hot posts on a given subreddit."""
-    url = "https://www.reddit.com/r/{}/hot/.json".format(subreddit)
-    headers = {
-       "User-Agent": "linux:0x16.api.advanced:v1.0.0\
-            (by /u/Large_Alternative_30)"
-    }
-    params = {
-        "after": after,
-        "count": count,
-        "limit": 100
-    }
-    response = requests.get(url, headers=headers, params=params,
-                            allow_redirects=False)
-    if response.status_code == 404:
+def recurse(subreddit, hot_list=[], after=None):
+    """
+    function that queries the Reddit API and returns a list containing the
+    titles of all hot articles for a given subreddit.
+    """
+
+    params = {'show': 'all'}
+
+    if subreddit is None or not isinstance(subreddit, str):
         return None
 
-    results = response.json().get("data")
-    after = results.get("after")
-    count += results.get("dist")
-    for c in results.get("children"):
-        hot_list.append(c.get("data").get("title"))
+    user_agent = {'User-agent': 'Google Chrome Version 81.0.4044.129'}
 
-    if after is not None:
-        return recurse(subreddit, hot_list, after, count)
-    return hot_list
+    url = 'https://www.reddit.com/r/{}/hot/.json?after={}'.format(subreddit,
+                                                                  after)
+
+    response = get(url, headers=user_agent, params=params)
+
+    if (response.status_code != 200):
+        return None
+
+    all_data = response.json()
+
+    try:
+        raw1 = all_data.get('data').get('children')
+        after = all_data.get('data').get('after')
+
+        if after is None:
+            return hot_list
+
+        for i in raw1:
+            hot_list.append(i.get('data').get('title'))
+
+        return recurse(subreddit, hot_list, after)
+    except:
+        print("None")
